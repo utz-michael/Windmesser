@@ -20,7 +20,6 @@ const char PAGE_INDEX[] PROGMEM = R"HTMLDOC(
   .card .label{font-size:0.75rem;color:#94a3b8;text-transform:uppercase;}
   .card .value{font-size:1.6rem;font-weight:600;margin-top:4px;}
   .maxbox{background:#1e293b;border-radius:10px;padding:14px 18px;margin-bottom:20px;}
-  canvas{width:100%;background:#1e293b;border-radius:10px;display:block;}
   a.cfg{color:#60a5fa;font-size:0.85rem;}
   .beaufort{font-size:0.9rem;color:#94a3b8;}
 </style>
@@ -42,7 +41,6 @@ const char PAGE_INDEX[] PROGMEM = R"HTMLDOC(
   <div class="sub" id="v_max_time"></div>
 </div>
 
-<canvas id="chart" height="220"></canvas>
 <p><a class="cfg" href="/config">WLAN-Einstellungen</a></p>
 
 <script>
@@ -53,10 +51,6 @@ const beaufortText = ["Windstille","leiser Zug","leichte Brise","schwache Brise"
 function fmtTime(ts){
   const d = new Date(ts*1000);
   return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-}
-function fmtTimeShort(ts){
-  const d = new Date(ts*1000);
-  return d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 }
 
 async function loadCurrent(){
@@ -81,74 +75,9 @@ async function loadMax(){
   }catch(e){}
 }
 
-async function loadHistory(){
-  try{
-    const r = await fetch('/api/history');
-    const d = await r.json();
-    drawChart(d);
-  }catch(e){}
-}
-
-function drawChart(points){
-  const canvas = document.getElementById('chart');
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width = canvas.clientWidth;
-  const h = canvas.height;
-  ctx.clearRect(0,0,w,h);
-  if(points.length < 2){
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '13px sans-serif';
-    ctx.fillText('Noch keine ausreichenden Daten', 10, h/2);
-    return;
-  }
-  const padL = 34, padR = 10, padT = 10, padB = 22;
-  const maxV = Math.max(...points.map(p=>p.v), 1);
-  const t0 = points[0].t, t1 = points[points.length-1].t;
-
-  // Gitterlinien
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for(let i=0;i<=4;i++){
-    const y = padT + (h-padT-padB)*i/4;
-    ctx.moveTo(padL,y); ctx.lineTo(w-padR,y);
-  }
-  ctx.stroke();
-
-  // Y-Achsenbeschriftung
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px sans-serif';
-  for(let i=0;i<=4;i++){
-    const val = maxV - maxV*i/4;
-    const y = padT + (h-padT-padB)*i/4;
-    ctx.fillText(val.toFixed(0), 4, y+3);
-  }
-
-  // Linie
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  points.forEach((p,i)=>{
-    const x = padL + (w-padL-padR) * (p.t - t0) / ((t1 - t0) || 1);
-    const y = padT + (h-padT-padB) * (1 - p.v/maxV);
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.stroke();
-
-  // X-Achsenbeschriftung
-  ctx.fillStyle = '#94a3b8';
-  for(let i=0;i<=4;i++){
-    const t = t0 + (t1-t0)*i/4;
-    const x = padL + (w-padL-padR)*i/4;
-    ctx.fillText(fmtTimeShort(t), x-16, h-6);
-  }
-}
-
-loadCurrent(); loadMax(); loadHistory();
+loadCurrent(); loadMax();
 setInterval(loadCurrent, 5000);
 setInterval(loadMax, 30000);
-setInterval(loadHistory, 60000);
-window.addEventListener('resize', loadHistory);
 </script>
 </body>
 </html>

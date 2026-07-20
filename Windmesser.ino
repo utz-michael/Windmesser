@@ -75,21 +75,6 @@ void handleApiCurrent() {
   server.send(200, "application/json", out);
 }
 
-void handleApiHistory() {
-  // 1440 Punkte * ca. 20 Bytes JSON-Overhead -> ausreichend Puffer wählen
-  DynamicJsonDocument doc(1024 * 20);
-  JsonArray arr = doc.to<JsonArray>();
-  for (size_t i = 0; i < historyStore.count(); i++) {
-    const HistoryPoint& p = historyStore.at(i);
-    JsonObject o = arr.createNestedObject();
-    o["t"] = p.timestamp;
-    o["v"] = p.speedMs;
-  }
-  String out;
-  serializeJson(doc, out);
-  server.send(200, "application/json", out);
-}
-
 void handleApiMax() {
   HistoryPoint p = historyStore.getMax();
   StaticJsonDocument<128> doc;
@@ -134,7 +119,6 @@ void handleNotFound() {
 void setupServer() {
   server.on("/", handleRoot);
   server.on("/api/current", handleApiCurrent);
-  server.on("/api/history", handleApiHistory);
   server.on("/api/max", handleApiMax);
   server.on("/config", HTTP_GET, handleConfigGet);
   server.on("/config/save", HTTP_POST, handleConfigSave);
@@ -165,6 +149,8 @@ void setup() {
   setupServer();
 }
 
+unsigned long lastHeapLogMs = 0;
+
 void loop() {
   server.handleClient();
   windSensor.update();
@@ -175,5 +161,17 @@ void loop() {
   if (now > 1700000000UL) {
     timeSynced = true;
     historyStore.update(windSensor.getValues().speedMs, now);
+  }
+
+  // Heap-Diagnose: alle 60s freien Heap + größten zusammenhängenden
+  // Block loggen. Ein sinkender Trend oder eine stark wachsende
+  // Fragmentierung (Differenz freeHeap vs. maxFreeBlock) deutet auf
+  // ein Speicherleck bzw. Fragmentierungsproblem hin.
+  unsigned long ms = millis();
+  if (ms - lastHeapLogMs >= 60000UL) {
+    lastHeapLogMs = ms;
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint8_t fragPct = ESP.getHeapFragmentation();
+    Serial.printf("[Heap] frei: %u Bytes, Fragmentierung: %u%%\n", freeHeap, fragPct);
   }
 }

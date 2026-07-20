@@ -53,15 +53,31 @@ Die aktuelle IP-Adresse im Client-Modus ist auf der seriellen Konsole
 
 ## Web-Dashboard
 
-- `/` – aktuelle Windgeschwindigkeit (m/s, km/h, kn, Beaufort), 24h-Grafik,
-  Maximalwert mit Datum/Uhrzeit
+- `/` – aktuelle Windgeschwindigkeit (m/s, km/h, kn, Beaufort) sowie
+  Maximalwert der letzten 24h mit Datum/Uhrzeit
 - `/config` – WLAN-Konfiguration
 - `/api/current` – JSON mit Momentanwerten
-- `/api/history` – JSON-Array der 24h-Historie
 - `/api/max` – JSON mit Maximalwert der letzten 24h
 
 Die Oberfläche ist vollständig ohne externe Ressourcen (kein CDN) umgesetzt,
 damit sie auch im Access-Point-Modus ohne Internetzugang funktioniert.
+
+## Speicher-Diagnose
+
+Alle 60s wird auf der seriellen Konsole (115200 Baud) der freie Heap sowie
+die Heap-Fragmentierung ausgegeben, z. B.:
+
+```
+[Heap] frei: 28456 Bytes, Fragmentierung: 12%
+```
+
+Ein kontinuierlich sinkender freier Heap deutet auf ein Speicherleck hin,
+eine hohe/steigende Fragmentierung (>50%) erhöht das Risiko, dass eine
+größere Allokation (z. B. für TLS/TCP-Puffer) fehlschlägt und das Gerät
+abstürzt bzw. neu startet. Die Historie dient nur noch intern der
+24h-Maximum-Berechnung und wird nicht mehr über die Web-API ausgeliefert
+(kein Graph mehr im Dashboard) – dadurch ist der Speicherbedarf jetzt auf
+den kompakten Ringpuffer (`HISTORY_LENGTH * 8 Byte`) begrenzt.
 
 ## Kalibrierung / Anpassung der Kennlinie
 
