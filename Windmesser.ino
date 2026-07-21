@@ -155,12 +155,16 @@ void loop() {
   server.handleClient();
   windSensor.update();
 
+  // fortlaufend den höchsten Wert seit der letzten Historien-Abtastung
+  // merken, damit kurze Böen nicht verloren gehen
+  historyStore.trackPeak(windSensor.getValues().speedMs);
+
   uint32_t now = currentUnixTime();
   // Plausibilitätscheck: Zeit wurde per NTP synchronisiert
   // (nur im STA-Modus mit Internetzugang möglich)
   if (now > 1700000000UL) {
     timeSynced = true;
-    historyStore.update(windSensor.getValues().speedMs, now);
+    historyStore.update(now);
   }
 
   // Heap-Diagnose: alle 60s freien Heap + größten zusammenhängenden

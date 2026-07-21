@@ -79,6 +79,16 @@ abstürzt bzw. neu startet. Die Historie dient nur noch intern der
 (kein Graph mehr im Dashboard) – dadurch ist der Speicherbedarf jetzt auf
 den kompakten Ringpuffer (`HISTORY_LENGTH * 8 Byte`) begrenzt.
 
+## Maximum-Erfassung (Peak-Tracking)
+
+Damit kurze Windböen nicht durch das 60-Sekunden-Abtastraster der Historie
+fallen, wird intern **jede Sekunde** der aktuelle Wert mit dem bisherigen
+Spitzenwert seit der letzten Abtastung verglichen (`HistoryStore::trackPeak`).
+Erst dieser Spitzenwert wird alle 60s in die Historie geschrieben – nicht der
+zufällige Momentanwert zum Abtastzeitpunkt. Das 24h-Maximum auf dem
+Dashboard basiert somit auf den höchsten tatsächlich gemessenen Böen und
+nicht nur auf 1440 zufälligen Stichproben.
+
 ## Kalibrierung / Anpassung der Kennlinie
 
 Die Kennlinie ist in `config.h` linear hinterlegt:

@@ -14,8 +14,14 @@ public:
   // fügt sofort einen Messpunkt hinzu
   void addSample(float speedMs, uint32_t timestamp);
 
-  // prüft intern das Intervall und ruft addSample() bei Bedarf auf
-  void update(float currentSpeedMs, uint32_t timestamp);
+  // fortlaufend (z.B. jede Sekunde) aufrufen: merkt sich den höchsten
+  // Wert seit der letzten Historien-Abtastung, damit kurze Böen
+  // zwischen zwei Abtastungen nicht verloren gehen
+  void trackPeak(float speedMs);
+
+  // prüft intern das Intervall und schreibt bei Bedarf den seit der
+  // letzten Abtastung höchsten Wert (aus trackPeak) in die Historie
+  void update(uint32_t timestamp);
 
   size_t count() const { return _count; }
   // liefert den i-ten (chronologisch ältesten zuerst) Punkt
@@ -31,4 +37,5 @@ private:
   size_t _head = 0;
   size_t _count = 0;
   unsigned long _lastSampleMs = 0;
+  float _peakSinceLastSample = 0.0f;
 };
