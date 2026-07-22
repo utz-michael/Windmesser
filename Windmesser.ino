@@ -31,28 +31,15 @@
 #include <ESP8266WebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
-#include <time.h>
 
 #include "config.h"
 #include "WindSensor.h"
-#include "HistoryStore.h"
 #include "WifiConfig.h"
 #include "WebPages.h"
 
 ESP8266WebServer server(WEBSERVER_PORT);
 WindSensor windSensor;
-HistoryStore historyStore;
 WifiConfig wifiConfig;
-
-bool timeSynced = false;
-
-uint32_t currentUnixTime() {
-  return (uint32_t)time(nullptr);
-}
-
-void setupTime() {
-  configTime(TZ_INFO, NTP_SERVER1, NTP_SERVER2);
-}
 
 // ---------------------------------------------------------
 //  Webserver-Handler
@@ -70,16 +57,6 @@ void handleApiCurrent() {
   doc["kmh"] = v.speedKmh;
   doc["kn"]  = v.speedKn;
   doc["bft"] = v.beaufort;
-  String out;
-  serializeJson(doc, out);
-  server.send(200, "application/json", out);
-}
-
-void handleApiMax() {
-  HistoryPoint p = historyStore.getMax();
-  StaticJsonDocument<128> doc;
-  doc["ms"] = p.speedMs;
-  doc["t"]  = p.timestamp;
   String out;
   serializeJson(doc, out);
   server.send(200, "application/json", out);
@@ -119,7 +96,6 @@ void handleNotFound() {
 void setupServer() {
   server.on("/", handleRoot);
   server.on("/api/current", handleApiCurrent);
-  server.on("/api/max", handleApiMax);
   server.on("/config", HTTP_GET, handleConfigGet);
   server.on("/config/save", HTTP_POST, handleConfigSave);
   server.onNotFound(handleNotFound);
@@ -141,10 +117,8 @@ void setup() {
   }
 
   wifiConfig.begin();
-  setupTime();
 
   windSensor.begin(SENSOR_PIN);
-  historyStore.begin();
 
   setupServer();
 }
@@ -155,22 +129,9 @@ void loop() {
   server.handleClient();
   windSensor.update();
 
-  // fortlaufend den höchsten Wert seit der letzten Historien-Abtastung
-  // merken, damit kurze Böen nicht verloren gehen
-  historyStore.trackPeak(windSensor.getValues().speedMs);
-
-  uint32_t now = currentUnixTime();
-  // Plausibilitätscheck: Zeit wurde per NTP synchronisiert
-  // (nur im STA-Modus mit Internetzugang möglich)
-  if (now > 1700000000UL) {
-    timeSynced = true;
-    historyStore.update(now);
-  }
-
-  // Heap-Diagnose: alle 60s freien Heap + größten zusammenhängenden
-  // Block loggen. Ein sinkender Trend oder eine stark wachsende
-  // Fragmentierung (Differenz freeHeap vs. maxFreeBlock) deutet auf
-  // ein Speicherleck bzw. Fragmentierungsproblem hin.
+  // Heap-Diagnose: alle 60s freien Heap + Fragmentierung loggen.
+  // Ein sinkender Trend oder eine stark wachsende Fragmentierung
+  // deutet auf ein Speicherleck bzw. Fragmentierungsproblem hin.
   unsigned long ms = millis();
   if (ms - lastHeapLogMs >= 60000UL) {
     lastHeapLogMs = ms;

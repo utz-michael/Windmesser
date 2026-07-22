@@ -19,7 +19,6 @@ const char PAGE_INDEX[] PROGMEM = R"HTMLDOC(
   .card{background:#1e293b;border-radius:10px;padding:14px 18px;min-width:120px;flex:1;}
   .card .label{font-size:0.75rem;color:#94a3b8;text-transform:uppercase;}
   .card .value{font-size:1.6rem;font-weight:600;margin-top:4px;}
-  .maxbox{background:#1e293b;border-radius:10px;padding:14px 18px;margin-bottom:20px;}
   a.cfg{color:#60a5fa;font-size:0.85rem;}
   .beaufort{font-size:0.9rem;color:#94a3b8;}
 </style>
@@ -35,23 +34,12 @@ const char PAGE_INDEX[] PROGMEM = R"HTMLDOC(
   <div class="card"><div class="label">Beaufort</div><div class="value" id="v_bft">--</div><div class="beaufort" id="v_bft_txt"></div></div>
 </div>
 
-<div class="maxbox">
-  <div class="label">Maximum (letzte 24h)</div>
-  <div class="value" id="v_max">--</div>
-  <div class="sub" id="v_max_time"></div>
-</div>
-
 <p><a class="cfg" href="/config">WLAN-Einstellungen</a></p>
 
 <script>
 const beaufortText = ["Windstille","leiser Zug","leichte Brise","schwache Brise",
 "mäßige Brise","frische Brise","starker Wind","steifer Wind","stürmischer Wind",
 "Sturm","schwerer Sturm","orkanartiger Sturm","Orkan"];
-
-function fmtTime(ts){
-  const d = new Date(ts*1000);
-  return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-}
 
 async function loadCurrent(){
   try{
@@ -66,18 +54,8 @@ async function loadCurrent(){
   }catch(e){ document.getElementById('status').textContent = 'Verbindungsfehler'; }
 }
 
-async function loadMax(){
-  try{
-    const r = await fetch('/api/max');
-    const d = await r.json();
-    document.getElementById('v_max').textContent = d.ms.toFixed(1) + ' m/s';
-    document.getElementById('v_max_time').textContent = d.t ? fmtTime(d.t) : 'keine Daten';
-  }catch(e){}
-}
-
-loadCurrent(); loadMax();
+loadCurrent();
 setInterval(loadCurrent, 5000);
-setInterval(loadMax, 30000);
 </script>
 </body>
 </html>

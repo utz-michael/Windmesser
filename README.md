@@ -1,8 +1,8 @@
 # Windmesser – Adafruit Feather HUZZAH ESP8266
 
 Firmware zur Messung der Windgeschwindigkeit über ein digitales Frequenzsignal
-(0–700 Hz = 0–70 m/s), mit Web-Dashboard, 24h-Verlaufsgrafik, Maximalwert-Anzeige
-und konfigurierbarem WLAN (Access Point oder Client).
+(0–700 Hz = 0–70 m/s), mit Web-Dashboard für die aktuellen Live-Werte und
+konfigurierbarem WLAN (Access Point oder Client).
 
 ## Hardware
 
@@ -53,11 +53,10 @@ Die aktuelle IP-Adresse im Client-Modus ist auf der seriellen Konsole
 
 ## Web-Dashboard
 
-- `/` – aktuelle Windgeschwindigkeit (m/s, km/h, kn, Beaufort) sowie
-  Maximalwert der letzten 24h mit Datum/Uhrzeit
+- `/` – aktuelle Windgeschwindigkeit (m/s, km/h, kn, Beaufort), aktualisiert
+  sich automatisch alle 5 Sekunden
 - `/config` – WLAN-Konfiguration
-- `/api/current` – JSON mit Momentanwerten
-- `/api/max` – JSON mit Maximalwert der letzten 24h
+- `/api/current` – JSON mit den Momentanwerten
 
 Die Oberfläche ist vollständig ohne externe Ressourcen (kein CDN) umgesetzt,
 damit sie auch im Access-Point-Modus ohne Internetzugang funktioniert.
@@ -68,26 +67,13 @@ Alle 60s wird auf der seriellen Konsole (115200 Baud) der freie Heap sowie
 die Heap-Fragmentierung ausgegeben, z. B.:
 
 ```
-[Heap] frei: 28456 Bytes, Fragmentierung: 12%
+[Heap] frei: 34120 Bytes, Fragmentierung: 8%
 ```
 
 Ein kontinuierlich sinkender freier Heap deutet auf ein Speicherleck hin,
 eine hohe/steigende Fragmentierung (>50%) erhöht das Risiko, dass eine
-größere Allokation (z. B. für TLS/TCP-Puffer) fehlschlägt und das Gerät
-abstürzt bzw. neu startet. Die Historie dient nur noch intern der
-24h-Maximum-Berechnung und wird nicht mehr über die Web-API ausgeliefert
-(kein Graph mehr im Dashboard) – dadurch ist der Speicherbedarf jetzt auf
-den kompakten Ringpuffer (`HISTORY_LENGTH * 8 Byte`) begrenzt.
-
-## Maximum-Erfassung (Peak-Tracking)
-
-Damit kurze Windböen nicht durch das 60-Sekunden-Abtastraster der Historie
-fallen, wird intern **jede Sekunde** der aktuelle Wert mit dem bisherigen
-Spitzenwert seit der letzten Abtastung verglichen (`HistoryStore::trackPeak`).
-Erst dieser Spitzenwert wird alle 60s in die Historie geschrieben – nicht der
-zufällige Momentanwert zum Abtastzeitpunkt. Das 24h-Maximum auf dem
-Dashboard basiert somit auf den höchsten tatsächlich gemessenen Böen und
-nicht nur auf 1440 zufälligen Stichproben.
+größere Allokation (z. B. für TCP-Puffer) fehlschlägt und das Gerät
+abstürzt bzw. neu startet.
 
 ## Kalibrierung / Anpassung der Kennlinie
 
@@ -101,20 +87,6 @@ Die Kennlinie ist in `config.h` linear hinterlegt:
 ```
 
 Bei einem anderen Sensor einfach diese vier Werte anpassen.
-
-## Datenhaltung / Einschränkungen
-
-- Die 24h-Historie (1 Wert/Minute, 1440 Punkte) wird **im RAM** gehalten und
-  geht bei einem Neustart/Stromausfall verloren. Für eine dauerhafte
-  Speicherung könnte die Historie periodisch als Datei auf LittleFS
-  geschrieben werden (im aktuellen Stand nicht umgesetzt, um Flash-
-  Schreibzyklen zu schonen).
-- Die Zeitsynchronisation erfolgt per NTP und benötigt daher einen
-  Internetzugang (funktioniert also nur im STA-Modus mit funktionierendem
-  Router-Internetzugang). Im reinen AP-Modus ohne Internet läuft die Uhr auf
-  Basis der internen ESP-Zeit ab dem letzten erfolgreichen Sync bzw. bleibt
-  bei „nicht synchronisiert“ stehen – die Historie wird dann erst nach einer
-  erfolgreichen Zeitsynchronisation aufgezeichnet.
 
 ## Beaufort-Skala (verwendete Grenzwerte in m/s)
 
@@ -144,4 +116,12 @@ ersetzt werden:
 - `ESP8266WebServer.h` → `WebServer.h`
 - `ESP.getChipId()` → z. B. `(uint32_t)ESP.getEfuseMac()`
 
-Der übrige Code (Sensorlogik, Historie, Web-Oberfläche) bleibt unverändert.
+Der übrige Code (Sensorlogik, Web-Oberfläche) bleibt unverändert.
+
+## Frühere Funktionen (entfernt)
+
+Frühere Versionen dieses Projekts enthielten eine 24h-Verlaufsgrafik sowie
+eine Aufzeichnung/Anzeige des Maximalwerts der letzten 24h (inkl.
+NTP-Zeitsynchronisation für Zeitstempel). Diese Funktionen wurden auf
+Wunsch entfernt, um den Code schlank zu halten und den Speicherbedarf
+weiter zu reduzieren. Bei Bedarf lässt sich das wieder ergänzen.
