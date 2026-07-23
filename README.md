@@ -61,6 +61,21 @@ Die aktuelle IP-Adresse im Client-Modus ist auf der seriellen Konsole
 Die Oberfläche ist vollständig ohne externe Ressourcen (kein CDN) umgesetzt,
 damit sie auch im Access-Point-Modus ohne Internetzugang funktioniert.
 
+## WiFi-Stabilität im Client-Modus (STA)
+
+Der ESP8266 aktiviert im STA-Modus standardmäßig einen WiFi-Stromsparmodus
+(Modem-Sleep). Bei manchen Routern führt das nach längerer Laufzeit
+(Stunden bis Tage) dazu, dass die Verbindung hängen bleibt und das Gerät
+im Netzwerk nicht mehr erreichbar ist, obwohl es intern weiterläuft. Diese
+Firmware deaktiviert den Modem-Sleep daher explizit
+(`WiFi.setSleepMode(WIFI_NONE_SLEEP)`).
+
+Zusätzlich prüft `WifiConfig::checkConnection()` alle 10 Sekunden den
+Verbindungsstatus. Bricht die STA-Verbindung ab, wird automatisch ein
+Reconnect versucht; schlägt das wiederholt (10x in Folge, ca. 100s) fehl,
+startet sich das Gerät selbstständig neu. Die Reconnect-Versuche sind auf
+der seriellen Konsole nachvollziehbar (`[WiFi] Verbindung verloren, ...`).
+
 ## Speicher-Diagnose
 
 Alle 60s wird auf der seriellen Konsole (115200 Baud) der freie Heap sowie

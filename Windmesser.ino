@@ -124,10 +124,19 @@ void setup() {
 }
 
 unsigned long lastHeapLogMs = 0;
+unsigned long lastWifiCheckMs = 0;
 
 void loop() {
   server.handleClient();
   windSensor.update();
+
+  // alle 10s prüfen, ob die STA-Verbindung noch steht, und bei Bedarf
+  // reconnecten (siehe WifiConfig::checkConnection)
+  unsigned long wifiMs = millis();
+  if (wifiMs - lastWifiCheckMs >= 10000UL) {
+    lastWifiCheckMs = wifiMs;
+    wifiConfig.checkConnection();
+  }
 
   // Heap-Diagnose: alle 60s freien Heap + Fragmentierung loggen.
   // Ein sinkender Trend oder eine stark wachsende Fragmentierung

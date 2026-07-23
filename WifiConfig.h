@@ -21,9 +21,15 @@ public:
   bool save(const WifiSettings& settings);
   void load();
 
+  // regelmäßig in loop() aufrufen (z.B. alle 10s):
+  // prüft im STA-Modus die Verbindung und stößt bei Bedarf einen
+  // Reconnect an; nach zu vielen Fehlversuchen wird neu gestartet
+  void checkConnection();
+
 private:
   WifiSettings _settings;
   bool _apActive = false;
+  uint8_t _reconnectFailCount = 0;
 
   void startAP();
   bool startSTA();

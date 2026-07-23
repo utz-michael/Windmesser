@@ -72,6 +72,14 @@ bool WifiConfig::startSTA() {
 void WifiConfig::begin() {
   load();
 
+  // Modem-Sleep deaktivieren: Der ESP8266 aktiviert im STA-Modus
+  // standardmäßig einen WiFi-Stromsparmodus, der bei vielen Routern
+  // nach längerer Laufzeit (Stunden/Tage) dazu führt, dass die
+  // Verbindung hängen bleibt oder nicht sauber aufwacht. Für ein
+  // dauerhaft erreichbares Gerät ist das Abschalten deutlich stabiler,
+  // der Mehrverbrauch spielt bei einer Netzteil-Versorgung keine Rolle.
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+
   if (_settings.mode == WifiMode::STA && _settings.ssid.length() > 0) {
     if (!startSTA()) {
       Serial.println("[WiFi] STA-Verbindung fehlgeschlagen, starte Access Point als Fallback.");
@@ -84,6 +92,31 @@ void WifiConfig::begin() {
 
 bool WifiConfig::isConnected() const {
   return !_apActive && WiFi.status() == WL_CONNECTED;
+}
+
+void WifiConfig::checkConnection() {
+  // Nur im STA-Modus relevant - im AP-Modus gibt es keinen "Verbindungsabbruch"
+  if (_apActive) return;
+
+  if (WiFi.status() == WL_CONNECTED) {
+    _reconnectFailCount = 0;
+    return;
+  }
+
+  _reconnectFailCount++;
+  Serial.print("[WiFi] Verbindung verloren, Reconnect-Versuch ");
+  Serial.println(_reconnectFailCount);
+
+  WiFi.reconnect();
+
+  // Nach zu vielen erfolglosen Versuchen hilft meist nur ein sauberer
+  // Neustart des gesamten WiFi-Stacks (behebt hartnäckige Hänger,
+  // die ein reines reconnect() nicht löst)
+  if (_reconnectFailCount >= 10) {
+    Serial.println("[WiFi] Reconnect wiederholt fehlgeschlagen, starte Gerät neu.");
+    delay(200);
+    ESP.restart();
+  }
 }
 
 String WifiConfig::getStatusText() const {
