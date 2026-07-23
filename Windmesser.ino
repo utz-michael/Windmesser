@@ -35,11 +35,13 @@
 #include "config.h"
 #include "WindSensor.h"
 #include "WifiConfig.h"
+#include "NmeaSender.h"
 #include "WebPages.h"
 
 ESP8266WebServer server(WEBSERVER_PORT);
 WindSensor windSensor;
 WifiConfig wifiConfig;
+NmeaSender nmeaSender;
 
 // ---------------------------------------------------------
 //  Webserver-Handler
@@ -127,16 +129,25 @@ void setup() {
   wifiConfig.begin();
 
   windSensor.begin(SENSOR_PIN);
+  nmeaSender.begin();
 
   setupServer();
 }
 
 unsigned long lastHeapLogMs = 0;
 unsigned long lastWifiCheckMs = 0;
+unsigned long lastNmeaSendMs = 0;
 
 void loop() {
   server.handleClient();
   windSensor.update();
+
+  // NMEA-0183-Satz per UDP senden
+  unsigned long nmeaMs = millis();
+  if (nmeaMs - lastNmeaSendMs >= NMEA_SEND_INTERVAL_MS) {
+    lastNmeaSendMs = nmeaMs;
+    nmeaSender.sendWindSpeed(windSensor.getValues().speedMs);
+  }
 
   // alle 10s prüfen, ob die STA-Verbindung noch steht, und bei Bedarf
   // reconnecten (siehe WifiConfig::checkConnection)

@@ -61,6 +61,34 @@ Die aktuelle IP-Adresse im Client-Modus ist auf der seriellen Konsole
 Die Oberfläche ist vollständig ohne externe Ressourcen (kein CDN) umgesetzt,
 damit sie auch im Access-Point-Modus ohne Internetzugang funktioniert.
 
+## NMEA 0183 Ausgabe per UDP
+
+Zusätzlich zum Web-Dashboard sendet das Gerät die Windgeschwindigkeit jede
+Sekunde als NMEA-0183-Satz (`$WIMWV`, Wind Speed and Angle) per UDP an
+`192.168.192.100:2541` (einstellbar über `NMEA_UDP_TARGET_IP` /
+`NMEA_UDP_TARGET_PORT` / `NMEA_SEND_INTERVAL_MS` in `config.h`). Damit lässt
+sich der Sensor z. B. in OpenCPN, SignalK oder anderer NMEA-fähiger Software
+einbinden.
+
+Beispiel-Satz:
+```
+$WIMWV,0.0,R,12.3,M,A*3F
+```
+
+**Wichtiger Hinweis:** Dieser Sensor misst nur die Windgeschwindigkeit,
+keine Windrichtung (kein Windfahnen-Sensor). Das Winkel-Feld im MWV-Satz
+ist daher immer ein Platzhalter (`0.0`) und **nicht** die tatsächliche
+Windrichtung - empfangende Software sollte dieses Feld ignorieren. Die
+Geschwindigkeit wird in Metern pro Sekunde (Einheit `M`) übertragen.
+
+Da als Ziel eine feste IP-Adresse im lokalen Netz verwendet wird
+(Unicast, kein Broadcast), muss diese Adresse aus dem Netzwerk erreichbar
+sein, in dem sich der ESP8266 gerade befindet. Im Access-Point-Modus
+(Standard-Subnetz `192.168.4.x`) ist die Adresse `192.168.192.100`
+**nicht** erreichbar - die UDP-Pakete werden dann verworfen, ohne dass es
+zu einem Fehler führt. Für die NMEA-Ausgabe muss das Gerät also im
+Client-Modus (STA) im selben Netz wie der Empfänger laufen.
+
 ## Aktives Schließen von TCP-Verbindungen
 
 `ESP8266WebServer` schließt Verbindungen standardmäßig nicht selbst - das

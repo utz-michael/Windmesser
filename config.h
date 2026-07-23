@@ -19,6 +19,11 @@
 // ---- Messintervall ----
 #define MEASURE_INTERVAL_MS   1000UL     // Frequenz wird alle 1s neu berechnet
 
+// ---- NMEA 0183 UDP-Ausgabe ----
+#define NMEA_UDP_TARGET_IP     "192.168.192.100"
+#define NMEA_UDP_TARGET_PORT   2541
+#define NMEA_SEND_INTERVAL_MS  1000UL    // wie oft ein NMEA-Satz gesendet wird
+
 // ---- WLAN ----
 #define AP_SSID_PREFIX          "Windmesser-Setup"
 #define AP_PASSWORD             "windmesser"   // mind. 8 Zeichen
