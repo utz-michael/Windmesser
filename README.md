@@ -61,6 +61,22 @@ Die aktuelle IP-Adresse im Client-Modus ist auf der seriellen Konsole
 Die Oberfläche ist vollständig ohne externe Ressourcen (kein CDN) umgesetzt,
 damit sie auch im Access-Point-Modus ohne Internetzugang funktioniert.
 
+## Aktives Schließen von TCP-Verbindungen
+
+`ESP8266WebServer` schließt Verbindungen standardmäßig nicht selbst - das
+überlässt es dem Client (HTTP Keep-Alive). Bleibt eine Verbindung durch ein
+Client-Gerät unsauber offen (z. B. Smartphone-Bildschirm sperrt sich mitten
+in der Anfrage), blockiert das dauerhaft einen der nur 5 verfügbaren
+TCP-Slots des ESP8266 (siehe Abschnitt "WiFi-Stabilität"). Sind nach und
+nach alle 5 Slots belegt, ist die Weboberfläche nicht mehr erreichbar,
+während einfache Netzwerkfunktionen wie Ping (ICMP, benötigt keinen
+TCP-Slot) weiterhin funktionieren - genau dieses Symptom war der Auslöser
+für diese Änderung.
+
+Daher sendet jede Antwort explizit `Connection: close` und der Server
+schließt den Socket direkt selbst (`server.client().stop()`), statt auf den
+Client zu warten. So werden TCP-Slots zuverlässig und zeitnah wieder frei.
+
 ## WiFi-Stabilität im Client-Modus (STA)
 
 Der ESP8266 aktiviert im STA-Modus standardmäßig einen WiFi-Stromsparmodus

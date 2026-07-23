@@ -46,7 +46,9 @@ WifiConfig wifiConfig;
 // ---------------------------------------------------------
 
 void handleRoot() {
+  server.sendHeader("Connection", "close");
   server.send(200, "text/html", FPSTR(PAGE_INDEX));
+  server.client().stop();
 }
 
 void handleApiCurrent() {
@@ -59,7 +61,9 @@ void handleApiCurrent() {
   doc["bft"] = v.beaufort;
   String out;
   serializeJson(doc, out);
+  server.sendHeader("Connection", "close");
   server.send(200, "application/json", out);
+  server.client().stop();
 }
 
 void handleConfigGet() {
@@ -70,7 +74,9 @@ void handleConfigGet() {
   page.replace("%STA_SEL%", s.mode == WifiMode::STA ? "selected" : "");
   page.replace("%SSID%", s.ssid);
   page.replace("%PASSWORD%", s.password);
+  server.sendHeader("Connection", "close");
   server.send(200, "text/html", page);
+  server.client().stop();
 }
 
 void handleConfigSave() {
@@ -90,7 +96,9 @@ void handleConfigSave() {
 }
 
 void handleNotFound() {
+  server.sendHeader("Connection", "close");
   server.send(404, "text/plain", "Nicht gefunden");
+  server.client().stop();
 }
 
 void setupServer() {
